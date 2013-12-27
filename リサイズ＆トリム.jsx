@@ -1,73 +1,77 @@
 /*===================================================================================================
-	File Name: リサイズ＆トリム.jsx
-	Title: リサイズ＆トリム
-	Version: 1.0.0
-	Author: show555
-	Description: 選択したフォルダ内の画像を指定したサイズいっぱいにリサイズしトリミングする
-	Includes: Underscore.js
+  File Name: リサイズ＆トリム.jsx
+  Title: リサイズ＆トリム
+  Version: 1.0.1
+  Author: show555
+  Description: 選択したフォルダ内の画像を指定したサイズいっぱいにリサイズしトリミングする
+  Includes: Underscore.js
 ===================================================================================================*/
 
 #target photoshop
 
+// Photoshopの設定単位を保存
+var originalRulerUnits = app.preferences.rulerUnits;
+// Photoshopの設定単位をピクセルに変更
+app.preferences.rulerUnits = Units.PIXELS;
+
 // 初期設定
 var settings = {
-	folderPath: '',        // 対象フォルダのパスの初期値
-	_fileTypes: {
-		init: [ 'JPG' ],     // 対象ファイルタイプのデフォルトチェック JPG／GIF／PNG／EPS／TIFF／BMP
-		regex: {
-			JPG:  '\\.jpe?g',
-			GIF:  '\\.gif',
-			PNG:  '\\.png',
-			EPS:  '\\.eps',
-			TIFF: '\\.tiff?',
-			BMP:  '\\.bmp',
-		}
-	},
-	colorMode: 'RGB',      // カラーモードの初期値
-	_quality: {
-		jpgWeb: {
-			init: 90,          // 保存画質（Web用JPG）の初期値
-			min:  0,
-			max:  100
-		},
-		jpgDtp: {
-			init: 10,          // 保存画質（DTP用JPG）の初期値
-			min:  0,
-			max:  12
-		},
-	},
-	trim: {
-		init: '縦・横固定',
-		type: {
-			fix:    '縦・横固定',
-			square: '正方形',
-			flex:   '長辺・短辺'
-		},
-		width:  600,         // 幅（長辺）のサイズの初期値
-		height: 400,         // 高さ（短辺）のサイズの初期値
-	},
-	save: {
-		init: 'JPG',         // 保存形式の初期値
-		type: {
-			jpgWeb: { label: 'JPG（WEB用）', extension: 'jpg' },
-			jpgDtp: { label: 'JPG', extension: 'jpg' },
-			eps:    { label: 'EPS', extension: 'eps' },
-			png:    { label: 'PNG', extension: 'png' }
-		},
-		dir: 'resize'        // 保存先のディレクトリ名
-	},
-	fileTypes: [],
-	trimType: '',
-	saveType: '',
-	quality: '',
-	folderObj: {}
+  folderPath: '',        // 対象フォルダのパスの初期値
+  _fileTypes: {
+    init: [ 'JPG' ],     // 対象ファイルタイプのデフォルトチェック JPG／GIF／PNG／EPS／TIFF／BMP
+    regex: {
+      JPG:  '\\.jpe?g',
+      GIF:  '\\.gif',
+      PNG:  '\\.png',
+      EPS:  '\\.eps',
+      TIFF: '\\.tiff?',
+      BMP:  '\\.bmp',
+    }
+  },
+  colorMode: 'RGB',      // カラーモードの初期値
+  _quality: {
+    jpgWeb: {
+      init: 90,          // 保存画質（Web用JPG）の初期値
+      min:  0,
+      max:  100
+    },
+    jpgDtp: {
+      init: 10,          // 保存画質（DTP用JPG）の初期値
+      min:  0,
+      max:  12
+    },
+  },
+  trim: {
+    init: '縦・横固定',
+    type: {
+      fix:    '縦・横固定',
+      square: '正方形',
+      flex:   '長辺・短辺'
+    },
+    width:  600,         // 幅（長辺）のサイズの初期値
+    height: 400,         // 高さ（短辺）のサイズの初期値
+  },
+  save: {
+    init: 'JPG',         // 保存形式の初期値
+    type: {
+      jpgWeb: { label: 'JPG（WEB用）', extension: 'jpg' },
+      jpgDtp: { label: 'JPG', extension: 'jpg' },
+      eps:    { label: 'EPS', extension: 'eps' },
+      png:    { label: 'PNG', extension: 'png' }
+    },
+    dir: 'resize'        // 保存先のディレクトリ名
+  },
+  fileTypes: [],
+  trimType: '',
+  saveType: '',
+  quality: '',
+  folderObj: {}
 };
 
 // ----------------------------------▼ Underscore.js ▼----------------------------------
-//     Underscore.js 1.4.4
+//     Underscore.js 1.5.2
 //     http://underscorejs.org
-//     (c) 2009-2011 Jeremy Ashkenas, DocumentCloud Inc.
-//     (c) 2011-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+//     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 //     Underscore may be freely distributed under the MIT license.
 
 (function() {
@@ -75,7 +79,7 @@ var settings = {
   // Baseline setup
   // --------------
 
-  // Establish the root object, `window` in the browser, or `global` on the server.
+  // Establish the root object, `window` in the browser, or `exports` on the server.
   var root = this;
 
   // Save the previous value of the `_` variable.
@@ -132,7 +136,7 @@ var settings = {
   }
 
   // Current version.
-  _.VERSION = '1.4.4';
+  _.VERSION = '1.5.2';
 
   // Collection Functions
   // --------------------
@@ -145,14 +149,13 @@ var settings = {
     if (nativeForEach && obj.forEach === nativeForEach) {
       obj.forEach(iterator, context);
     } else if (obj.length === +obj.length) {
-      for (var i = 0, l = obj.length; i < l; i++) {
+      for (var i = 0, length = obj.length; i < length; i++) {
         if (iterator.call(context, obj[i], i, obj) === breaker) return;
       }
     } else {
-      for (var key in obj) {
-        if (_.has(obj, key)) {
-          if (iterator.call(context, obj[key], key, obj) === breaker) return;
-        }
+      var keys = _.keys(obj);
+      for (var i = 0, length = keys.length; i < length; i++) {
+        if (iterator.call(context, obj[keys[i]], keys[i], obj) === breaker) return;
       }
     }
   };
@@ -351,7 +354,8 @@ var settings = {
     return result.value;
   };
 
-  // Shuffle an array.
+  // Shuffle an array, using the modern version of the
+  // [Fisher-Yates shuffle](http://en.wikipedia.org/wiki/Fisher窶添ates_shuffle).
   _.shuffle = function(obj) {
     var rand;
     var index = 0;
@@ -364,6 +368,16 @@ var settings = {
     return shuffled;
   };
 
+  // Sample **n** random values from an array.
+  // If **n** is not specified, returns a single random element from the array.
+  // The internal `guard` argument allows it to work with `map`.
+  _.sample = function(obj, n, guard) {
+    if (arguments.length < 2 || guard) {
+      return obj[_.random(obj.length - 1)];
+    }
+    return _.shuffle(obj).slice(0, Math.max(0, n));
+  };
+
   // An internal function to generate lookup iterators.
   var lookupIterator = function(value) {
     return _.isFunction(value) ? value : function(obj){ return obj[value]; };
@@ -374,9 +388,9 @@ var settings = {
     var iterator = lookupIterator(value);
     return _.pluck(_.map(obj, function(value, index, list) {
       return {
-        value : value,
-        index : index,
-        criteria : iterator.call(context, value, index, list)
+        value: value,
+        index: index,
+        criteria: iterator.call(context, value, index, list)
       };
     }).sort(function(left, right) {
       var a = left.criteria;
@@ -385,38 +399,41 @@ var settings = {
         if (a > b || a === void 0) return 1;
         if (a < b || b === void 0) return -1;
       }
-      return left.index < right.index ? -1 : 1;
+      return left.index - right.index;
     }), 'value');
   };
 
   // An internal function used for aggregate "group by" operations.
-  var group = function(obj, value, context, behavior) {
-    var result = {};
-    var iterator = lookupIterator(value == null ? _.identity : value);
-    each(obj, function(value, index) {
-      var key = iterator.call(context, value, index, obj);
-      behavior(result, key, value);
-    });
-    return result;
+  var group = function(behavior) {
+    return function(obj, value, context) {
+      var result = {};
+      var iterator = value == null ? _.identity : lookupIterator(value);
+      each(obj, function(value, index) {
+        var key = iterator.call(context, value, index, obj);
+        behavior(result, key, value);
+      });
+      return result;
+    };
   };
 
   // Groups the object's values by a criterion. Pass either a string attribute
   // to group by, or a function that returns the criterion.
-  _.groupBy = function(obj, value, context) {
-    return group(obj, value, context, function(result, key, value) {
-      (_.has(result, key) ? result[key] : (result[key] = [])).push(value);
-    });
-  };
+  _.groupBy = group(function(result, key, value) {
+    (_.has(result, key) ? result[key] : (result[key] = [])).push(value);
+  });
+
+  // Indexes the object's values by a criterion, similar to `groupBy`, but for
+  // when you know that your index values will be unique.
+  _.indexBy = group(function(result, key, value) {
+    result[key] = value;
+  });
 
   // Counts instances of an object that group by a certain criterion. Pass
   // either a string attribute to count by, or a function that returns the
   // criterion.
-  _.countBy = function(obj, value, context) {
-    return group(obj, value, context, function(result, key) {
-      if (!_.has(result, key)) result[key] = 0;
-      result[key]++;
-    });
-  };
+  _.countBy = group(function(result, key) {
+    _.has(result, key) ? result[key]++ : result[key] = 1;
+  });
 
   // Use a comparator function to figure out the smallest index at which
   // an object should be inserted so as to maintain order. Uses binary search.
@@ -453,7 +470,7 @@ var settings = {
   // allows it to work with `_.map`.
   _.first = _.head = _.take = function(array, n, guard) {
     if (array == null) return void 0;
-    return (n != null) && !guard ? slice.call(array, 0, n) : array[0];
+    return (n == null) || guard ? array[0] : slice.call(array, 0, n);
   };
 
   // Returns everything but the last entry of the array. Especially useful on
@@ -468,10 +485,10 @@ var settings = {
   // values in the array. The **guard** check allows it to work with `_.map`.
   _.last = function(array, n, guard) {
     if (array == null) return void 0;
-    if ((n != null) && !guard) {
-      return slice.call(array, Math.max(array.length - n, 0));
-    } else {
+    if ((n == null) || guard) {
       return array[array.length - 1];
+    } else {
+      return slice.call(array, Math.max(array.length - n, 0));
     }
   };
 
@@ -490,6 +507,9 @@ var settings = {
 
   // Internal implementation of a recursive `flatten` function.
   var flatten = function(input, shallow, output) {
+    if (shallow && _.every(input, _.isArray)) {
+      return concat.apply(output, input);
+    }
     each(input, function(value) {
       if (_.isArray(value) || _.isArguments(value)) {
         shallow ? push.apply(output, value) : flatten(value, shallow, output);
@@ -500,7 +520,7 @@ var settings = {
     return output;
   };
 
-  // Return a completely flattened version of an array.
+  // Flatten out an array, either recursively (by default), or just one level.
   _.flatten = function(array, shallow) {
     return flatten(array, shallow, []);
   };
@@ -558,20 +578,10 @@ var settings = {
   // Zip together multiple lists into a single array -- elements that share
   // an index go together.
   _.zip = function() {
-    return _.unzip(slice.call(arguments));
-  };
-
-  // The inverse operation to `_.zip`. If given an array of pairs it
-  // returns an array of the paired elements split into two left and
-  // right element arrays, if given an array of triples it returns a
-  // three element array and so on. For example, `_.unzip` given
-  // `[['a',1],['b',2],['c',3]]` returns the array
-  // [['a','b','c'],[1,2,3]].
-  _.unzip = function(list) {
-    var length = _.max(_.pluck(list, "length").concat(0));
+    var length = _.max(_.pluck(arguments, "length").concat(0));
     var results = new Array(length);
     for (var i = 0; i < length; i++) {
-      results[i] = _.pluck(list, '' + i);
+      results[i] = _.pluck(arguments, '' + i);
     }
     return results;
   };
@@ -582,7 +592,7 @@ var settings = {
   _.object = function(list, values) {
     if (list == null) return {};
     var result = {};
-    for (var i = 0, l = list.length; i < l; i++) {
+    for (var i = 0, length = list.length; i < length; i++) {
       if (values) {
         result[list[i]] = values[i];
       } else {
@@ -600,17 +610,17 @@ var settings = {
   // for **isSorted** to use binary search.
   _.indexOf = function(array, item, isSorted) {
     if (array == null) return -1;
-    var i = 0, l = array.length;
+    var i = 0, length = array.length;
     if (isSorted) {
       if (typeof isSorted == 'number') {
-        i = (isSorted < 0 ? Math.max(0, l + isSorted) : isSorted);
+        i = (isSorted < 0 ? Math.max(0, length + isSorted) : isSorted);
       } else {
         i = _.sortedIndex(array, item);
         return array[i] === item ? i : -1;
       }
     }
     if (nativeIndexOf && array.indexOf === nativeIndexOf) return array.indexOf(item, isSorted);
-    for (; i < l; i++) if (array[i] === item) return i;
+    for (; i < length; i++) if (array[i] === item) return i;
     return -1;
   };
 
@@ -636,11 +646,11 @@ var settings = {
     }
     step = arguments[2] || 1;
 
-    var len = Math.max(Math.ceil((stop - start) / step), 0);
+    var length = Math.max(Math.ceil((stop - start) / step), 0);
     var idx = 0;
-    var range = new Array(len);
+    var range = new Array(length);
 
-    while(idx < len) {
+    while(idx < length) {
       range[idx++] = start;
       start += step;
     }
@@ -715,19 +725,23 @@ var settings = {
   };
 
   // Returns a function, that, when invoked, will only be triggered at most once
-  // during a given window of time.
-  _.throttle = function(func, wait, immediate) {
+  // during a given window of time. Normally, the throttled function will run
+  // as much as it can, without ever going more than once per `wait` duration;
+  // but if you'd like to disable the execution on the leading edge, pass
+  // `{leading: false}`. To disable execution on the trailing edge, ditto.
+  _.throttle = function(func, wait, options) {
     var context, args, result;
     var timeout = null;
     var previous = 0;
+    options || (options = {});
     var later = function() {
-      previous = new Date;
+      previous = options.leading === false ? 0 : new Date;
       timeout = null;
       result = func.apply(context, args);
     };
     return function() {
       var now = new Date;
-      if (!previous && immediate === false) previous = now;
+      if (!previous && options.leading === false) previous = now;
       var remaining = wait - (now - previous);
       context = this;
       args = arguments;
@@ -736,7 +750,7 @@ var settings = {
         timeout = null;
         previous = now;
         result = func.apply(context, args);
-      } else if (!timeout) {
+      } else if (!timeout && options.trailing !== false) {
         timeout = setTimeout(later, remaining);
       }
       return result;
@@ -748,17 +762,24 @@ var settings = {
   // N milliseconds. If `immediate` is passed, trigger the function on the
   // leading edge, instead of the trailing.
   _.debounce = function(func, wait, immediate) {
-    var result;
-    var timeout = null;
+    var timeout, args, context, timestamp, result;
     return function() {
-      var context = this, args = arguments;
+      context = this;
+      args = arguments;
+      timestamp = new Date();
       var later = function() {
-        timeout = null;
-        if (!immediate) result = func.apply(context, args);
+        var last = (new Date()) - timestamp;
+        if (last < wait) {
+          timeout = setTimeout(later, wait - last);
+        } else {
+          timeout = null;
+          if (!immediate) result = func.apply(context, args);
+        }
       };
       var callNow = immediate && !timeout;
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
+      if (!timeout) {
+        timeout = setTimeout(later, wait);
+      }
       if (callNow) result = func.apply(context, args);
       return result;
     };
@@ -803,7 +824,6 @@ var settings = {
 
   // Returns a function that will only be executed after being called N times.
   _.after = function(times, func) {
-    if (times <= 0) return func();
     return function() {
       if (--times < 1) {
         return func.apply(this, arguments);
@@ -825,22 +845,33 @@ var settings = {
 
   // Retrieve the values of an object's properties.
   _.values = function(obj) {
-    var values = [];
-    for (var key in obj) if (_.has(obj, key)) values.push(obj[key]);
+    var keys = _.keys(obj);
+    var length = keys.length;
+    var values = new Array(length);
+    for (var i = 0; i < length; i++) {
+      values[i] = obj[keys[i]];
+    }
     return values;
   };
 
   // Convert an object into a list of `[key, value]` pairs.
   _.pairs = function(obj) {
-    var pairs = [];
-    for (var key in obj) if (_.has(obj, key)) pairs.push([key, obj[key]]);
+    var keys = _.keys(obj);
+    var length = keys.length;
+    var pairs = new Array(length);
+    for (var i = 0; i < length; i++) {
+      pairs[i] = [keys[i], obj[keys[i]]];
+    }
     return pairs;
   };
 
   // Invert the keys and values of an object. The values must be serializable.
   _.invert = function(obj) {
     var result = {};
-    for (var key in obj) if (_.has(obj, key)) result[obj[key]] = key;
+    var keys = _.keys(obj);
+    for (var i = 0, length = keys.length; i < length; i++) {
+      result[obj[keys[i]]] = keys[i];
+    }
     return result;
   };
 
@@ -957,6 +988,13 @@ var settings = {
       // unique nested structures.
       if (aStack[length] == a) return bStack[length] == b;
     }
+    // Objects with different constructors are not equivalent, but `Object`s
+    // from different frames are.
+    var aCtor = a.constructor, bCtor = b.constructor;
+    if (aCtor !== bCtor && !(_.isFunction(aCtor) && (aCtor instanceof aCtor) &&
+                             _.isFunction(bCtor) && (bCtor instanceof bCtor))) {
+      return false;
+    }
     // Add the first object to the stack of traversed objects.
     aStack.push(a);
     bStack.push(b);
@@ -973,13 +1011,6 @@ var settings = {
         }
       }
     } else {
-      // Objects with different constructors are not equivalent, but `Object`s
-      // from different frames are.
-      var aCtor = a.constructor, bCtor = b.constructor;
-      if (aCtor !== bCtor && !(_.isFunction(aCtor) && (aCtor instanceof aCtor) &&
-                               _.isFunction(bCtor) && (bCtor instanceof bCtor))) {
-        return false;
-      }
       // Deep compare objects.
       for (var key in a) {
         if (_.has(a, key)) {
@@ -1124,8 +1155,7 @@ var settings = {
       '<': '&lt;',
       '>': '&gt;',
       '"': '&quot;',
-      "'": '&#x27;',
-      '/': '&#x2F;'
+      "'": '&#x27;'
     }
   };
   entityMap.unescape = _.invert(entityMap.escape);
@@ -1156,7 +1186,7 @@ var settings = {
 
   // Add your own custom functions to the Underscore object.
   _.mixin = function(obj) {
-    each(_.functions(obj), function(name){
+    each(_.functions(obj), function(name) {
       var func = _[name] = obj[name];
       _.prototype[name] = function() {
         var args = [this._wrapped];
@@ -1319,36 +1349,36 @@ var settings = {
 
 // 保存関数
 var saveFunctions = {
-	jpgWeb: function( theDoc, newFile, settings ) {
-		var jpegOpt       = new ExportOptionsSaveForWeb();
-		jpegOpt.format    = SaveDocumentType.JPEG;
-		jpegOpt.optimized = true;
-		jpegOpt.quality   = settings.quality;
-		theDoc.exportDocument( newFile, ExportType.SAVEFORWEB, jpegOpt );
-	},
-	jpgDtp: function( theDoc, newFile, settings ) {
-		var jpegOpt     = new JPEGSaveOptions();
-		jpegOpt.quality = settings.quality;
-		theDoc.saveAs( newFile, jpegOpt, true, Extension.LOWERCASE );
-	},
-	eps: function( theDoc, newFile, settings ) {
-		var epsOpt               = new EPSSaveOptions();
-		epsOpt.embedColorProfile = true;
-		epsOpt.encoding          = SaveEncoding.JPEGMAXIMUM;
-		epsOpt.halftoneScreen    = false;
-		epsOpt.interpolation     = false;
-		epsOpt.preview           = Preview.MACOSEIGHTBIT;
-		epsOpt.psColorManagement = false;
-		epsOpt.transferFunction  = false;
-		epsOpt.transparentWhites = false;
-		epsOpt.vectorData        = false;
-		theDoc.saveAs( newFile, epsOpt, true, Extension.LOWERCASE );
-	},
-	png: function( theDoc, newFile, settings ) {
-		var pngOpt        = new PNGSaveOptions();
-		pngOpt.interlaced = false;
-		theDoc.saveAs( newFile, pngOpt, true, Extension.LOWERCASE );
-	}
+  jpgWeb: function( theDoc, newFile, settings ) {
+    var jpegOpt       = new ExportOptionsSaveForWeb();
+    jpegOpt.format    = SaveDocumentType.JPEG;
+    jpegOpt.optimized = true;
+    jpegOpt.quality   = settings.quality;
+    theDoc.exportDocument( newFile, ExportType.SAVEFORWEB, jpegOpt );
+  },
+  jpgDtp: function( theDoc, newFile, settings ) {
+    var jpegOpt     = new JPEGSaveOptions();
+    jpegOpt.quality = settings.quality;
+    theDoc.saveAs( newFile, jpegOpt, true, Extension.LOWERCASE );
+  },
+  eps: function( theDoc, newFile, settings ) {
+    var epsOpt               = new EPSSaveOptions();
+    epsOpt.embedColorProfile = true;
+    epsOpt.encoding          = SaveEncoding.JPEGMAXIMUM;
+    epsOpt.halftoneScreen    = false;
+    epsOpt.interpolation     = false;
+    epsOpt.preview           = Preview.MACOSEIGHTBIT;
+    epsOpt.psColorManagement = false;
+    epsOpt.transferFunction  = false;
+    epsOpt.transparentWhites = false;
+    epsOpt.vectorData        = false;
+    theDoc.saveAs( newFile, epsOpt, true, Extension.LOWERCASE );
+  },
+  png: function( theDoc, newFile, settings ) {
+    var pngOpt        = new PNGSaveOptions();
+    pngOpt.interlaced = false;
+    theDoc.saveAs( newFile, pngOpt, true, Extension.LOWERCASE );
+  }
 };
 
 // 実行フラグ
@@ -1367,8 +1397,8 @@ uDlg.folderPnl.path      = uDlg.add( "edittext", { x:25,  y:30, width:270, heigh
 uDlg.folderPnl.selectBtn = uDlg.add( "button",   { x:300, y:30, width:75,  height:25 }, "選択" );
 // 対象フォルダ選択ボタンが押された時の処理
 uDlg.folderPnl.selectBtn.onClick = function() {
-	var oldPath = uDlg.folderPnl.path.text;
-	uDlg.folderPnl.path.text = Folder.selectDialog( 'フォルダを選択してください' ) || oldPath;
+  var oldPath = uDlg.folderPnl.path.text;
+  uDlg.folderPnl.path.text = Folder.selectDialog( 'フォルダを選択してください' ) || oldPath;
 }
 
 // パネル 対象ファイルタイプ
@@ -1381,9 +1411,9 @@ uDlg.fileTypePnl.ext.push( uDlg.add( "checkbox", { x:205, y:100, width:50, heigh
 uDlg.fileTypePnl.ext.push( uDlg.add( "checkbox", { x:265, y:100, width:50, height:25 }, "TIFF" ) );
 uDlg.fileTypePnl.ext.push( uDlg.add( "checkbox", { x:325, y:100, width:50, height:25 }, "BMP" ) );
 _.each( uDlg.fileTypePnl.ext, function( item, key ) {
-	if ( _.contains( settings._fileTypes.init, item.text ) ) {
-		item.value = true;
-	}
+  if ( _.contains( settings._fileTypes.init, item.text ) ) {
+    item.value = true;
+  }
 } );
 
 // パネル トリム設定
@@ -1400,16 +1430,16 @@ uDlg.trimPnl.heightShortUnit = uDlg.add( "statictext",   { x:175, y:235, width:2
 uDlg.trimPnl.trimTypeText.justify = uDlg.trimPnl.widthLongText.justify = uDlg.trimPnl.heightShortText.justify = 'right';
 // 幅／長辺の長さが変更された時の処理
 uDlg.trimPnl.widthLong.onChange = function() {
-	if ( uDlg.trimPnl.trimType.selection.text == '正方形' ) {
-		uDlg.trimPnl.heightShort.text = uDlg.trimPnl.widthLong.text;
-	}
+  if ( uDlg.trimPnl.trimType.selection.text == '正方形' ) {
+    uDlg.trimPnl.heightShort.text = uDlg.trimPnl.widthLong.text;
+  }
 }
 // 保存形式の初期値を設定
 uDlg.trimPnl.trimType.selection = _.indexOf( trimTypeList, settings.trim.init );
 setTrimTypeSizes( settings.trim.init );
 // 保存形式が変更された時の処理
 uDlg.trimPnl.trimType.onChange = function() {
-	setTrimTypeSizes( uDlg.trimPnl.trimType.selection.text );
+  setTrimTypeSizes( uDlg.trimPnl.trimType.selection.text );
 }
 
 // パネル 書き出し設定
@@ -1435,117 +1465,117 @@ uDlg.resizePnl.saveType.selection = _.indexOf( saveTypeList, settings.save.init 
 setSaveTypeQuality( settings.save.init );
 // 保存形式が変更された時の処理
 uDlg.resizePnl.saveType.onChange = function() {
-	setSaveTypeQuality( uDlg.resizePnl.saveType.selection.text );
+  setSaveTypeQuality( uDlg.resizePnl.saveType.selection.text );
 }
 // 画質のスライダーを動かしている時の処理
 uDlg.resizePnl.qualitySlider.onChanging = function() {
-	uDlg.resizePnl.quality.text = parseInt( uDlg.resizePnl.qualitySlider.value );
+  uDlg.resizePnl.quality.text = parseInt( uDlg.resizePnl.qualitySlider.value );
 }
 // 画質を入力した時の処理
 uDlg.resizePnl.quality.onChange = function() {
-	uDlg.resizePnl.qualitySlider.value = parseInt( uDlg.resizePnl.quality.text );
+  uDlg.resizePnl.qualitySlider.value = parseInt( uDlg.resizePnl.quality.text );
 }
 
 // キャンセルボタン
 uDlg.cancelBtn = uDlg.add( "button", { x:95, y:410, width:100, height:25 }, "キャンセル", { name: "cancel" } );
 // キャンセルボタンが押されたらキャンセル処理（ESCキー含む）
 uDlg.cancelBtn.onClick = function() {
-	// 実行フラグにfalseを代入
-	do_flag = false;
-	// ダイアログを閉じる
-	uDlg.close();
+  // 実行フラグにfalseを代入
+  do_flag = false;
+  // ダイアログを閉じる
+  uDlg.close();
 }
 
 // OKボタン
 uDlg.okBtn = uDlg.add( "button", { x:205, y:410, width:100, height:25 }, "リサイズ実行", { name: "ok" } );
 // OKボタンが押されたら各設定項目に不備がないかチェック
 uDlg.okBtn.onClick = function() {
-	// 各種項目の値を格納
-	settings.folderPath  = uDlg.folderPnl.path.text;
-	settings.folderObj   = new Folder( settings.folderPath );
-	settings.colorMode   = uDlg.resizePnl.colorMode.RGB.value ? 'RGB' : 'CMYK';
-	settings.trimType    = getTrimTypeKey( uDlg.trimPnl.trimType.selection.text );
-	settings.saveType    = getSaveTypeKey( uDlg.resizePnl.saveType.selection.text );
-	settings.trim.width  = parseInt( uDlg.trimPnl.widthLong.text );
-	settings.trim.height = parseInt( uDlg.trimPnl.heightShort.text );
-	settings.fileTypes   = [];
-	_.each( uDlg.fileTypePnl.ext, function( item ) {
-		if ( item.value ) {
-			settings.fileTypes.push( item.text );
-		}
-	} );
+  // 各種項目の値を格納
+  settings.folderPath  = uDlg.folderPnl.path.text;
+  settings.folderObj   = new Folder( settings.folderPath );
+  settings.colorMode   = uDlg.resizePnl.colorMode.RGB.value ? 'RGB' : 'CMYK';
+  settings.trimType    = getTrimTypeKey( uDlg.trimPnl.trimType.selection.text );
+  settings.saveType    = getSaveTypeKey( uDlg.resizePnl.saveType.selection.text );
+  settings.trim.width  = parseInt( uDlg.trimPnl.widthLong.text );
+  settings.trim.height = parseInt( uDlg.trimPnl.heightShort.text );
+  settings.fileTypes   = [];
+  _.each( uDlg.fileTypePnl.ext, function( item ) {
+    if ( item.value ) {
+      settings.fileTypes.push( item.text );
+    }
+  } );
 
-	// 対象フォルダが選択されているかチェック
-	if ( !settings.folderPath ) {
-		alert( '対象フォルダが選択されていません' );
-		return false;
-	}
-	// 対象フォルダが存在するかチェック
-	if ( !settings.folderObj.exists ) {
-		alert( '対象フォルダが存在しません' );
-		return false;
-	}
-	// 拡張子が最低1つは選択されているかチェック
-	if ( settings.fileTypes.length < 1 ) {
-		alert( '対象ファイルタイプが選択されていません' );
-		return false;
-	}
-	// カラーモードがCMYKの時保存形式がPNGになっていないかチェック
-	if ( settings.colorMode == 'CMYK' ) {
-		if ( settings.saveType == 'jpgWeb' ) {
-			alert( 'JPG（WEB用）形式で保存するためにはカラーモードはRGBでなければいけません' );
-			return false;
-		}
-		if ( settings.saveType == 'png' ) {
-			alert( 'PNG形式で保存するためにはカラーモードはRGBでなければいけません' );
-			return false;
-		}
-	}
-	// 幅／長辺の長さが入力されているかチェック
-	if ( _.isNaN( settings.trim.width ) ) {
-		alert( '幅／長辺の長さを整数で入力して下さい' );
-		return false;
-	}
-	// 幅／長辺の長さが0より大きいかチェック
-	if ( settings.trim.width < 1 ) {
-		alert( '0より大きい幅／長辺の長さを入力しください' );
-		return false;
-	}
-	if ( settings.trimType != 'square' ) {
-		// 高さ／短辺の長さが入力されているかチェック
-		if ( _.isNaN( settings.trim.height ) ) {
-			alert( '高さ／短辺の長さを整数で入力して下さい' );
-			return false;
-		}
-		// 高さ／短辺の長さが0より大きいかチェック
-		if ( settings.trim.height < 1 ) {
-			alert( '0より大きい高さ／短辺の長さを入力しください' );
-			return false;
-		}
-		// 幅／長辺と高さ／短辺の長さが同じでないかチェック
-		if ( settings.trim.height == settings.trim.width ) {
-			alert( '同じ長さを設定する時はトリムモードを正方形にしてください' );
-			return false;
-		}
-	}
-	// トリムモードが長辺・短辺の時短辺の方が長くなっていないかチェック
-	if ( settings.trimType == 'flex' ) {
-		if ( settings.trim.height > settings.trim.width ) {
-			alert( '長辺より短辺の方が長くなっています' );
-			return false;
-		}
-	}
-	// 保存形式がJPG／JPG（WEB用）の場合
-	if ( _.contains( [ 'jpgWeb', 'jpgDtp' ], settings.saveType ) ) {
-		// 画質が入力されているかチェック
-		settings.quality = parseInt( uDlg.resizePnl.quality.text );
-		if ( _.isNaN( settings.quality ) ) {
-			alert( '画質を整数で入力して下さい' );
-			return false;
-		}
-	}
-	// 不備がなかった場合処理続行
-	dispatchEvent();
+  // 対象フォルダが選択されているかチェック
+  if ( !settings.folderPath ) {
+    alert( '対象フォルダが選択されていません' );
+    return false;
+  }
+  // 対象フォルダが存在するかチェック
+  if ( !settings.folderObj.exists ) {
+    alert( '対象フォルダが存在しません' );
+    return false;
+  }
+  // 拡張子が最低1つは選択されているかチェック
+  if ( settings.fileTypes.length < 1 ) {
+    alert( '対象ファイルタイプが選択されていません' );
+    return false;
+  }
+  // カラーモードがCMYKの時保存形式がPNGになっていないかチェック
+  if ( settings.colorMode == 'CMYK' ) {
+    if ( settings.saveType == 'jpgWeb' ) {
+      alert( 'JPG（WEB用）形式で保存するためにはカラーモードはRGBでなければいけません' );
+      return false;
+    }
+    if ( settings.saveType == 'png' ) {
+      alert( 'PNG形式で保存するためにはカラーモードはRGBでなければいけません' );
+      return false;
+    }
+  }
+  // 幅／長辺の長さが入力されているかチェック
+  if ( _.isNaN( settings.trim.width ) ) {
+    alert( '幅／長辺の長さを整数で入力して下さい' );
+    return false;
+  }
+  // 幅／長辺の長さが0より大きいかチェック
+  if ( settings.trim.width < 1 ) {
+    alert( '0より大きい幅／長辺の長さを入力しください' );
+    return false;
+  }
+  if ( settings.trimType != 'square' ) {
+    // 高さ／短辺の長さが入力されているかチェック
+    if ( _.isNaN( settings.trim.height ) ) {
+      alert( '高さ／短辺の長さを整数で入力して下さい' );
+      return false;
+    }
+    // 高さ／短辺の長さが0より大きいかチェック
+    if ( settings.trim.height < 1 ) {
+      alert( '0より大きい高さ／短辺の長さを入力しください' );
+      return false;
+    }
+    // 幅／長辺と高さ／短辺の長さが同じでないかチェック
+    if ( settings.trim.height == settings.trim.width ) {
+      alert( '同じ長さを設定する時はトリムモードを正方形にしてください' );
+      return false;
+    }
+  }
+  // トリムモードが長辺・短辺の時短辺の方が長くなっていないかチェック
+  if ( settings.trimType == 'flex' ) {
+    if ( settings.trim.height > settings.trim.width ) {
+      alert( '長辺より短辺の方が長くなっています' );
+      return false;
+    }
+  }
+  // 保存形式がJPG／JPG（WEB用）の場合
+  if ( _.contains( [ 'jpgWeb', 'jpgDtp' ], settings.saveType ) ) {
+    // 画質が入力されているかチェック
+    settings.quality = parseInt( uDlg.resizePnl.quality.text );
+    if ( _.isNaN( settings.quality ) ) {
+      alert( '画質を整数で入力して下さい' );
+      return false;
+    }
+  }
+  // 不備がなかった場合処理続行
+  uDlg.close();
 }
 
 // ダイアログ表示
@@ -1553,165 +1583,168 @@ uDlg.show();
 
 // ---------------------------------- メインリサイズ処理 ----------------------------------
 if ( do_flag ) {
-	// alert( 'フォルダ:' + uDlg.folderPnl.path.text + "\n" + '拡張子：' + settings.fileTypes.join( ', ' ) + "\n" + 'トリムタイプ：' + settings.trimType + "\n" + '幅／長辺：' + settings.trim.width + "\n" + '高さ／短辺：' + settings.trim.height + "\n" + 'モード：' + settings.colorMode + "\n" + '保存形式：' + settings.saveType + "\n" + '画質：' + settings.quality );
+  // alert( 'フォルダ:' + uDlg.folderPnl.path.text + "\n" + '拡張子：' + settings.fileTypes.join( ', ' ) + "\n" + 'トリムタイプ：' + settings.trimType + "\n" + '幅／長辺：' + settings.trim.width + "\n" + '高さ／短辺：' + settings.trim.height + "\n" + 'モード：' + settings.colorMode + "\n" + '保存形式：' + settings.saveType + "\n" + '画質：' + settings.quality );
 
-	// 複数の対象ファイルを取得するための正規表現オブジェクトを作成
-	var extensions = [];
-	_.each( settings.fileTypes, function( fileType ) {
-		extensions.push( settings._fileTypes.regex[fileType] );
-	} );
-	var fileReg = new RegExp( '(' + extensions.join( '|' ) + ')$', 'i' );
-	// 対象ファイルを取得
-	var files   = settings.folderObj.getFiles( function( thefile ) {
-		if ( fileReg.test( thefile.name ) ) {
-			return true;
-		} else {
-			return false;
-		}
-	} );
-	// 対象ファイルに対してリサイズ→保存のループ処理
-	_.each( files, function( file ) {
-		// ファイルオープン
-		var theDoc = app.open( file );
-		// カラーモードをRGBに変更
-		theDoc.changeMode( ChangeMode[settings.colorMode] );
-		//リサイズする
-		var imageWidth   = theDoc.width.value,
-		    imageHeight  = theDoc.height.value,
-		    userWidth    = settings.trim.width;
-		    userHeight   = settings.trim.height;
-		    resizeWidth  = null,
-		    resizeHeight = null,
-		    cropWidth    = null,
-		    cropHeight   = null;
+  // 複数の対象ファイルを取得するための正規表現オブジェクトを作成
+  var extensions = [];
+  _.each( settings.fileTypes, function( fileType ) {
+    extensions.push( settings._fileTypes.regex[fileType] );
+  } );
+  var fileReg = new RegExp( '(' + extensions.join( '|' ) + ')$', 'i' );
+  // 対象ファイルを取得
+  var files   = settings.folderObj.getFiles( function( thefile ) {
+    if ( fileReg.test( thefile.name ) ) {
+      return true;
+    } else {
+      return false;
+    }
+  } );
+  // 対象ファイルに対してリサイズ→保存のループ処理
+  _.each( files, function( file ) {
+    // ファイルオープン
+    var theDoc = app.open( file );
+    // カラーモードをRGBに変更
+    theDoc.changeMode( ChangeMode[settings.colorMode] );
+    //リサイズする
+    var imageWidth   = theDoc.width.value,
+        imageHeight  = theDoc.height.value,
+        userWidth    = settings.trim.width;
+        userHeight   = settings.trim.height;
+        resizeWidth  = null,
+        resizeHeight = null,
+        cropWidth    = null,
+        cropHeight   = null;
 
-		switch ( settings.trimType ) {
-			case 'fix':
-				var imageAspectRatio = imageWidth / imageHeight;
-				var userAspectRatio  = userWidth / userHeight;
-				if ( imageAspectRatio > userAspectRatio ) {
-					resizeWidth  = imageWidth * userHeight / imageHeight;
-					resizeHeight = userHeight;
-				} else {
-					resizeWidth  = userWidth;
-					resizeHeight = imageHeight * userWidth / imageWidth;
-				}
-				cropWidth  = userWidth;
-				cropHeight = userHeight;
-				break;
-			case 'square':
-				if ( imageWidth > imageHeight ) {
-					resizeWidth  = imageWidth * userHeight / imageHeight;
-					resizeHeight = userWidth;
-				} else {
-					resizeWidth  = userWidth;
-					resizeHeight = imageHeight * userWidth / imageWidth;
-				}
-				cropWidth  = userWidth;
-				cropHeight = userHeight;
-				break;
-			case 'flex':
-				var imageAspectRatio = imageWidth / imageHeight;
-				var userAspectRatio  = ( ( imageWidth >= imageHeight ) ? userWidth : userHeight ) / ( ( imageHeight > imageWidth ) ? userWidth : userHeight );
-				if ( imageWidth >= imageHeight ) {
-					if ( imageAspectRatio > userAspectRatio ) {
-						resizeWidth  = imageWidth * userHeight / imageHeight;
-						resizeHeight = userHeight;
-					} else {
-						resizeWidth  = userWidth;
-						resizeHeight = imageHeight * userWidth / imageWidth;
-					}
-				} else {
-					if ( imageAspectRatio > userAspectRatio ) {
-						resizeWidth  = imageWidth * userWidth / imageHeight;
-						resizeHeight = userWidth;
-					} else {
-						resizeWidth  = userHeight;
-						resizeHeight = imageHeight * userHeight / imageWidth;
-					}
-				}
-				cropWidth  = ( imageWidth >= imageHeight ) ? userWidth : userHeight;
-				cropHeight = ( imageHeight > imageWidth ) ? userWidth : userHeight;
-				break;
-		}
-		theDoc.resizeImage( resizeWidth, resizeHeight, 72, ResampleMethod.BICUBICSHARPER );
-		// 入力されたサイズでトリミング
-		theDoc.resizeCanvas( cropWidth, cropHeight, AnchorPosition.MIDDLECENTER );
-		// 保存先フォルダを作成
-		var saveDir = new Folder( theDoc.path + '/' + settings.save.dir );
-		if( !saveDir.exists ){
-			saveDir.create();
-		}
-		// 保存用の新規オブジェクト作成
-		var newFile = new File( theDoc.path + '/' + settings.save.dir + '/' + theDoc.name.replace( /\.\w+$/i, '' ) + '.' + settings.save.type[settings.saveType].extension );
-		// 保存形式ごとの関数を呼び出し
-		saveFunctions[settings.saveType]( theDoc, newFile, settings );
-		// ファイルクローズ
-		theDoc.close( SaveOptions.DONOTSAVECHANGES );
-	} );
+    switch ( settings.trimType ) {
+      case 'fix':
+        var imageAspectRatio = imageWidth / imageHeight;
+        var userAspectRatio  = userWidth / userHeight;
+        if ( imageAspectRatio > userAspectRatio ) {
+          resizeWidth  = imageWidth * userHeight / imageHeight;
+          resizeHeight = userHeight;
+        } else {
+          resizeWidth  = userWidth;
+          resizeHeight = imageHeight * userWidth / imageWidth;
+        }
+        cropWidth  = userWidth;
+        cropHeight = userHeight;
+        break;
+      case 'square':
+        if ( imageWidth > imageHeight ) {
+          resizeWidth  = imageWidth * userHeight / imageHeight;
+          resizeHeight = userWidth;
+        } else {
+          resizeWidth  = userWidth;
+          resizeHeight = imageHeight * userWidth / imageWidth;
+        }
+        cropWidth  = userWidth;
+        cropHeight = userHeight;
+        break;
+      case 'flex':
+        var imageAspectRatio = imageWidth / imageHeight;
+        var userAspectRatio  = ( ( imageWidth >= imageHeight ) ? userWidth : userHeight ) / ( ( imageHeight > imageWidth ) ? userWidth : userHeight );
+        if ( imageWidth >= imageHeight ) {
+          if ( imageAspectRatio > userAspectRatio ) {
+            resizeWidth  = imageWidth * userHeight / imageHeight;
+            resizeHeight = userHeight;
+          } else {
+            resizeWidth  = userWidth;
+            resizeHeight = imageHeight * userWidth / imageWidth;
+          }
+        } else {
+          if ( imageAspectRatio > userAspectRatio ) {
+            resizeWidth  = imageWidth * userWidth / imageHeight;
+            resizeHeight = userWidth;
+          } else {
+            resizeWidth  = userHeight;
+            resizeHeight = imageHeight * userHeight / imageWidth;
+          }
+        }
+        cropWidth  = ( imageWidth >= imageHeight ) ? userWidth : userHeight;
+        cropHeight = ( imageHeight > imageWidth ) ? userWidth : userHeight;
+        break;
+    }
+    theDoc.resizeImage( resizeWidth, resizeHeight, 72, ResampleMethod.BICUBICSHARPER );
+    // 入力されたサイズでトリミング
+    theDoc.resizeCanvas( cropWidth, cropHeight, AnchorPosition.MIDDLECENTER );
+    // 保存先フォルダを作成
+    var saveDir = new Folder( theDoc.path + '/' + settings.save.dir );
+    if( !saveDir.exists ){
+      saveDir.create();
+    }
+    // 保存用の新規オブジェクト作成
+    var newFile = new File( theDoc.path + '/' + settings.save.dir + '/' + theDoc.name.replace( /\.\w+$/i, '' ) + '.' + settings.save.type[settings.saveType].extension );
+    // 保存形式ごとの関数を呼び出し
+    saveFunctions[settings.saveType]( theDoc, newFile, settings );
+    // ファイルクローズ
+    theDoc.close( SaveOptions.DONOTSAVECHANGES );
+  } );
 }
+
+// Photoshopの設定単位を復元
+app.preferences.rulerUnits = originalRulerUnits;
 
 // ------------------------------------------ 関数 -----------------------------------------
 function setSaveTypeQuality( saveType ) {
-	var key = getSaveTypeKey( saveType );
-	if ( _.contains( [ 'jpgWeb', 'jpgDtp' ], key ) ) {
-		uDlg.resizePnl.quality.text           = settings._quality[key].init;
-		uDlg.resizePnl.qualityRange.text      = "(" + settings._quality[key].min + "〜" + settings._quality[key].max + ")";
-		uDlg.resizePnl.qualitySlider.minvalue = settings._quality[key].min;
-		uDlg.resizePnl.qualitySlider.maxvalue = settings._quality[key].max;
-		uDlg.resizePnl.qualitySlider.value    = settings._quality[key].init;
-		uDlg.resizePnl.qualityText.enabled    = true;
-		uDlg.resizePnl.qualityRange.enabled   = true;
-		uDlg.resizePnl.quality.enabled        = true;
-		uDlg.resizePnl.qualitySlider.enabled  = true;
-	} else {
-		uDlg.resizePnl.qualityText.enabled    = false;
-		uDlg.resizePnl.qualityRange.enabled   = false;
-		uDlg.resizePnl.quality.enabled        = false;
-		uDlg.resizePnl.qualitySlider.enabled  = false;
-	}
+  var key = getSaveTypeKey( saveType );
+  if ( _.contains( [ 'jpgWeb', 'jpgDtp' ], key ) ) {
+    uDlg.resizePnl.quality.text           = settings._quality[key].init;
+    uDlg.resizePnl.qualityRange.text      = "(" + settings._quality[key].min + "〜" + settings._quality[key].max + ")";
+    uDlg.resizePnl.qualitySlider.minvalue = settings._quality[key].min;
+    uDlg.resizePnl.qualitySlider.maxvalue = settings._quality[key].max;
+    uDlg.resizePnl.qualitySlider.value    = settings._quality[key].init;
+    uDlg.resizePnl.qualityText.enabled    = true;
+    uDlg.resizePnl.qualityRange.enabled   = true;
+    uDlg.resizePnl.quality.enabled        = true;
+    uDlg.resizePnl.qualitySlider.enabled  = true;
+  } else {
+    uDlg.resizePnl.qualityText.enabled    = false;
+    uDlg.resizePnl.qualityRange.enabled   = false;
+    uDlg.resizePnl.quality.enabled        = false;
+    uDlg.resizePnl.qualitySlider.enabled  = false;
+  }
 }
 
 function getSaveTypeKey( saveType ) {
-	var saveTypeKey;
-	_.some( settings.save.type, function( value, key ) {
-		if ( value.label == saveType ) {
-			saveTypeKey = key;
-			return true;
-		}
-		return false;
-	} );
-	return saveTypeKey;
+  var saveTypeKey;
+  _.some( settings.save.type, function( value, key ) {
+    if ( value.label == saveType ) {
+      saveTypeKey = key;
+      return true;
+    }
+    return false;
+  } );
+  return saveTypeKey;
 }
 
 function setTrimTypeSizes( trimType ) {
-	var key = getTrimTypeKey( trimType );
-	switch ( key ) {
-		case 'fix':
-			uDlg.trimPnl.widthLongText.text      = '幅:';
-			uDlg.trimPnl.heightShortText.text    = '高さ:';
-			uDlg.trimPnl.heightShort.enabled     = true;
-			uDlg.trimPnl.heightShortText.enabled = true;
-			uDlg.trimPnl.heightShortUnit.enabled = true;
-			break;
-		case 'square':
-			uDlg.trimPnl.widthLongText.text      = '幅:';
-			uDlg.trimPnl.heightShortText.text    = '高さ:';
-			uDlg.trimPnl.heightShort.text        = uDlg.trimPnl.widthLong.text;
-			uDlg.trimPnl.heightShort.enabled     = false;
-			uDlg.trimPnl.heightShortText.enabled = false;
-			uDlg.trimPnl.heightShortUnit.enabled = false;
-			break;
-		case 'flex':
-			uDlg.trimPnl.widthLongText.text   = '長辺:';
-			uDlg.trimPnl.heightShortText.text = '短辺:';
-			uDlg.trimPnl.heightShort.enabled     = true;
-			uDlg.trimPnl.heightShortText.enabled = true;
-			uDlg.trimPnl.heightShortUnit.enabled = true;
-			break;
-	}
+  var key = getTrimTypeKey( trimType );
+  switch ( key ) {
+    case 'fix':
+      uDlg.trimPnl.widthLongText.text      = '幅:';
+      uDlg.trimPnl.heightShortText.text    = '高さ:';
+      uDlg.trimPnl.heightShort.enabled     = true;
+      uDlg.trimPnl.heightShortText.enabled = true;
+      uDlg.trimPnl.heightShortUnit.enabled = true;
+      break;
+    case 'square':
+      uDlg.trimPnl.widthLongText.text      = '幅:';
+      uDlg.trimPnl.heightShortText.text    = '高さ:';
+      uDlg.trimPnl.heightShort.text        = uDlg.trimPnl.widthLong.text;
+      uDlg.trimPnl.heightShort.enabled     = false;
+      uDlg.trimPnl.heightShortText.enabled = false;
+      uDlg.trimPnl.heightShortUnit.enabled = false;
+      break;
+    case 'flex':
+      uDlg.trimPnl.widthLongText.text   = '長辺:';
+      uDlg.trimPnl.heightShortText.text = '短辺:';
+      uDlg.trimPnl.heightShort.enabled     = true;
+      uDlg.trimPnl.heightShortText.enabled = true;
+      uDlg.trimPnl.heightShortUnit.enabled = true;
+      break;
+  }
 }
 
 function getTrimTypeKey( trimType ) {
-	return _.invert( settings.trim.type )[trimType];
+  return _.invert( settings.trim.type )[trimType];
 }
