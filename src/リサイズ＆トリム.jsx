@@ -1,10 +1,11 @@
 /*===================================================================================================
 	File Name: リサイズ＆トリム.jsx
 	Title: リサイズ＆トリム
-	Version: 1.0.1
+	Version: 1.1.0
 	Author: show555
 	Description: 選択したフォルダ内の画像を指定したサイズいっぱいにリサイズしトリミングする
-	Includes: Underscore.js
+	Includes: Underscore.js,
+	          Underscore.string.js
 ===================================================================================================*/
 
 #target photoshop
@@ -70,6 +71,8 @@ var settings = {
 
 // ----------------------------------▼ Underscore.js ▼----------------------------------
 #include "underscore.inc"
+#include "underscore.string.inc"
+_.mixin(_.string.exports());
 // ----------------------------------▲ Underscore.js ▲----------------------------------
 
 // 保存関数
@@ -324,8 +327,18 @@ if ( do_flag ) {
 			return false;
 		}
 	} );
+
+	// 進捗バーを表示
+	var ProgressPanel = CreateProgressPanel( files.length, 500, '処理中…', true );
+	ProgressPanel.show();
+	var i = 1;
+
 	// 対象ファイルに対してリサイズ→保存のループ処理
 	_.each( files, function( file ) {
+		// キャンセルの場合処理中止
+		if ( !do_flag ) return;
+		// 進捗バーを更新
+		ProgressPanel.val( i );
 		// ファイルオープン
 		var theDoc = app.open( file );
 		// カラーモードをRGBに変更
@@ -403,7 +416,12 @@ if ( do_flag ) {
 		saveFunctions[settings.saveType]( theDoc, newFile, settings );
 		// ファイルクローズ
 		theDoc.close( SaveOptions.DONOTSAVECHANGES );
+
+		i++;
 	} );
+}
+if ( ProgressPanel ) {
+	ProgressPanel.close();
 }
 
 // Photoshopの設定単位を復元
@@ -472,4 +490,37 @@ function setTrimTypeSizes( trimType ) {
 
 function getTrimTypeKey( trimType ) {
 	return _.invert( settings.trim.type )[trimType];
+}
+
+function CreateProgressPanel( myMaximumValue, myProgressBarWidth , progresTitle, useCancel ) {
+	var progresTitle = typeof progresTitle == 'string' ? progresTitle : 'Processing...';
+	myProgressPanel = new Window( 'palette', _.sprintf( "%s(%d/%d)", progresTitle, 1, myMaximumValue ) );
+	myProgressPanel.myProgressBar = myProgressPanel.add( 'progressbar', [ 12, 12, myProgressBarWidth, 24 ], 0, myMaximumValue );
+	if ( useCancel ) {
+		myProgressPanel.cancel = myProgressPanel.add( 'button', undefined, 'キャンセル' );
+		myProgressPanel.cancel.onClick = function() {
+			try {
+				do_flag = false;
+				myProgressPanel.close();
+			} catch(e) {
+				alert(e);
+			}
+		}
+	}
+	var PP = {
+		'ProgressPanel': myProgressPanel,
+		'title': progresTitle,
+		'show': function() { this.ProgressPanel.show() },
+		'close': function() { this.ProgressPanel.close() },
+		'max': myMaximumValue,
+		'barwidth': myProgressBarWidth,
+		'val': function( val ) {
+			this.ProgressPanel.myProgressBar.value = val;
+			if ( val < this.max ) {
+				this.ProgressPanel.text = _.sprintf( "%s(%d/%d)", this.title, val+1, this.max );
+			}
+			this.ProgressPanel.update();
+		}
+	}
+	return PP;
 }
