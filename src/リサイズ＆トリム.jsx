@@ -1,7 +1,7 @@
 /*===================================================================================================
 	File Name: リサイズ＆トリム.jsx
 	Title: リサイズ＆トリム
-	Version: 1.1.0
+	Version: 1.2.0
 	Author: show555
 	Description: 選択したフォルダ内の画像を指定したサイズいっぱいにリサイズしトリミングする
 	Includes: Underscore.js,
@@ -49,20 +49,21 @@ var settings = {
 			square: '正方形',
 			flex:   '長辺・短辺'
 		},
-		width:  600,         // 幅（長辺）のサイズの初期値
-		height: 400,         // 高さ（短辺）のサイズの初期値
+		width:  260,         // 幅（長辺）のサイズの初期値
+		height: 172,         // 高さ（短辺）のサイズの初期値
 	},
 	save: {
-		init: 'JPG',         // 保存形式の初期値
+		init: 'JPG（WEB用）',         // 保存形式の初期値
 		type: {
 			jpgWeb: { label: 'JPG（WEB用）', extension: 'jpg' },
 			jpgDtp: { label: 'JPG', extension: 'jpg' },
 			eps:    { label: 'EPS', extension: 'eps' },
 			png:    { label: 'PNG', extension: 'png' }
 		},
-		dir: 'resize'        // 保存先のディレクトリ名
+		dir: 'thumb'        // 保存先のディレクトリ名
 	},
 	fileTypes: [],
+	recursive: false,
 	trimType: '',
 	saveType: '',
 	quality: '',
@@ -319,14 +320,11 @@ if ( do_flag ) {
 		extensions.push( settings._fileTypes.regex[fileType] );
 	} );
 	var fileReg = new RegExp( '(' + extensions.join( '|' ) + ')$', 'i' );
-	// 対象ファイルを取得
-	var files   = settings.folderObj.getFiles( function( thefile ) {
-		if ( fileReg.test( thefile.name ) ) {
-			return true;
-		} else {
-			return false;
-		}
-	} );
+	var files = _getFileList( settings.folderObj );
+
+	// files = _.filter( files, function( file ) {
+	// 	return /^sub_photo/.test( file.name );
+	// } );
 
 	// 進捗バーを表示
 	var ProgressPanel = CreateProgressPanel( files.length, 500, '処理中…', true );
@@ -402,7 +400,7 @@ if ( do_flag ) {
 				cropHeight = ( imageHeight > imageWidth ) ? userWidth : userHeight;
 				break;
 		}
-		theDoc.resizeImage( resizeWidth, resizeHeight, 72, ResampleMethod.BICUBICSHARPER );
+		theDoc.resizeImage( resizeWidth, resizeHeight, 72, ResampleMethod.BICUBICSMOOTHER );
 		// 入力されたサイズでトリミング
 		theDoc.resizeCanvas( cropWidth, cropHeight, AnchorPosition.MIDDLECENTER );
 		// 保存先フォルダを作成
@@ -523,4 +521,25 @@ function CreateProgressPanel( myMaximumValue, myProgressBarWidth , progresTitle,
 		}
 	}
 	return PP;
+}
+
+function _getFileList( path ) {
+	var rv    = [],
+	    files = path.getFiles();
+
+	_.each( files, function( file ) {
+		if ( file.alias ) { // alias
+			return;
+		}
+		if ( file.constructor.name === 'File' ) { // file
+			if ( fileReg.test( file.name ) ) {
+				rv.push( file );
+			}
+		} else { // folder
+			if ( settings.recursive && (file.name !== settings.save.dir) ) {
+				rv.push.apply( rv, _getFileList( file ) );
+			}
+		}
+	} );
+	return rv;
 }
