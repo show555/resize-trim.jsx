@@ -1,7 +1,7 @@
 /*===================================================================================================
 	File Name: リサイズ＆トリム.jsx
 	Title: リサイズ＆トリム
-	Version: 1.4.0
+	Version: 1.5.0
 	Author: show555
 	Description: 選択したフォルダ内の画像を指定したサイズいっぱいにリサイズしトリミングする
 	Includes: Underscore.js,
@@ -122,7 +122,7 @@ var do_flag = true;
 
 // ---------------------------------- ダイアログ作成 ----------------------------------
 // ダイアログオブジェクト
-var uDlg = new Window( 'dialog', 'リサイズ＆トリム', { x:0, y:0, width:400, height:545 } );
+var uDlg = new Window( 'dialog', 'リサイズ＆トリム', { x:0, y:0, width:400, height:615 } );
 
 // ダイアログを画面に対して中央揃えに
 uDlg.center();
@@ -229,8 +229,18 @@ uDlg.resizePnl.overwrite.onClick = function() {
 	uDlg.resizePnl.saveDir.enabled     = !uDlg.resizePnl.overwrite.value;
 }
 
+// パネル 追加アクション
+uDlg.actionPnl            = uDlg.add( "panel",        { x:10, y:505, width:380, height:60 }, "追加アクション" );
+uDlg.actionPnl.actionList = uDlg.add( "dropdownlist", { x:25, y:527, width:350, height:22 }, {} );
+actionList = getActionSets();
+uDlg.actionPnl.actionList.add( 'item', 'なし' );
+for (i = 0; i < actionList.length; i++) {
+	uDlg.actionPnl.actionList.add( 'item', actionList[i] );
+}
+uDlg.actionPnl.actionList.selection = uDlg.actionPnl.actionList.items[0];
+
 // キャンセルボタン
-uDlg.cancelBtn = uDlg.add( "button", { x:95, y:505, width:100, height:25 }, "キャンセル", { name: "cancel" } );
+uDlg.cancelBtn = uDlg.add( "button", { x:95, y:575, width:100, height:25 }, "キャンセル", { name: "cancel" } );
 // キャンセルボタンが押されたらキャンセル処理（ESCキー含む）
 uDlg.cancelBtn.onClick = function() {
 	// 実行フラグにfalseを代入
@@ -240,7 +250,7 @@ uDlg.cancelBtn.onClick = function() {
 }
 
 // OKボタン
-uDlg.okBtn = uDlg.add( "button", { x:205, y:505, width:100, height:25 }, "リサイズ実行", { name: "ok" } );
+uDlg.okBtn = uDlg.add( "button", { x:205, y:575, width:100, height:25 }, "リサイズ実行", { name: "ok" } );
 // OKボタンが押されたら各設定項目に不備がないかチェック
 uDlg.okBtn.onClick = function() {
 	// 各種項目の値を格納
@@ -437,6 +447,12 @@ if ( do_flag ) {
 		theDoc.resizeImage( resizeWidth, resizeHeight, 72, ResampleMethod.BICUBICSMOOTHER );
 		// 入力されたサイズでトリミング
 		theDoc.resizeCanvas( cropWidth, cropHeight, AnchorPosition.MIDDLECENTER );
+		// 追加アクション実行
+		var isDoAction = (uDlg.actionPnl.actionList.selection.toString() !== 'なし') ? true : false;
+		if ( isDoAction ) {
+			selectAction = uDlg.actionPnl.actionList.selection.toString().split("::->>");
+			app.doAction( selectAction[1], selectAction[0] );
+		}
 		// 保存先フォルダを作成
 		var saveDir = !settings.save.overwrite ? new Folder( theDoc.path + '/' + settings.save.dir ) : new Folder( theDoc.path );
 		if( !saveDir.exists ){
@@ -577,4 +593,107 @@ function _getFileList( path ) {
 		}
 	} );
 	return rv;
+}
+
+function getActionSets() {
+	cTID = function(s) {
+		return app.charIDToTypeID(s);
+	};
+	sTID = function(s) {
+		return app.stringIDToTypeID(s);
+	};
+	var i = 1;
+	var sets = [];
+	while (true) {
+		var ref = new ActionReference();
+		ref.putIndex(cTID("ASet"), i);
+		var desc;
+		var lvl = $.level;
+		$.level = 0;
+		try {
+			desc = executeActionGet(ref);
+		} catch (e) {
+			break;
+		} finally {
+			$.level = lvl;
+		}
+		if (desc.hasKey(cTID("Nm  "))) {
+			var set = {};
+			set.index = i;
+			set.name = desc.getString(cTID("Nm  "));
+			set.toString = function() {
+				return this.name;
+			};
+			set.count = desc.getInteger(cTID("NmbC"));
+			set.actions = [];
+			for (var j = 1; j <= set.count; j++) {
+				var ref = new ActionReference();
+				ref.putIndex(cTID('Actn'), j);
+				ref.putIndex(cTID('ASet'), set.index);
+				var adesc = executeActionGet(ref);
+				var actName = adesc.getString(cTID('Nm  '));
+				set.actions.push(actName);
+			}
+			sets.push(set);
+		}
+		i++;
+	}
+
+	function getActions(aset) {
+		cTID = function(s) {
+			return app.charIDToTypeID(s);
+		};
+		sTID = function(s) {
+			return app.stringIDToTypeID(s);
+		};
+		var i = 1;
+		var names = [];
+		if (!aset) {
+			throw "Action set must be specified";
+		}
+		while (true) {
+			var ref = new ActionReference();
+			ref.putIndex(cTID("ASet"), i);
+			var desc;
+			try {
+				desc = executeActionGet(ref);
+			} catch (e) {
+				break;
+			}
+			if (desc.hasKey(cTID("Nm  "))) {
+				var name = desc.getString(cTID("Nm  "));
+				if (name == aset) {
+					var count = desc.getInteger(cTID("NmbC"));
+					var names = [];
+					for (var j = 1; j <= count; j++) {
+						var ref = new ActionReference();
+						ref.putIndex(cTID('Actn'), j);
+						ref.putIndex(cTID('ASet'), i);
+						var adesc = executeActionGet(ref);
+						var actName = adesc.getString(cTID('Nm  '));
+						names.push(actName);
+					}
+					break;
+				}
+			}
+			i++;
+		}
+		return names;
+	};
+	var ActionList = [];
+	for (i = 0; i < sets.length; i++) ActionList.push([sets[i], getActions(sets[i])]);
+	var AL = [];
+	for (var i = 0; i < ActionList.length; i++) {
+		for (var j = 0; j < ActionList[i].length; j++) {
+			if (ActionList[i][j] instanceof Object) {
+				var SetName = ActionList[i][j].name;
+				try {
+					for (var k = 0; k < ActionList[i][j].actions.length; k++) {
+						AL.push(SetName + "::->>" + ActionList[i][j].actions[k]);
+					}
+				} catch (e) {}
+			}
+		}
+	}
+	return AL;
 }
