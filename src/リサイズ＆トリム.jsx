@@ -122,7 +122,7 @@ var do_flag = true;
 
 // ---------------------------------- ダイアログ作成 ----------------------------------
 // ダイアログオブジェクト
-var uDlg = new Window( 'dialog', 'リサイズ＆トリム', { x:0, y:0, width:400, height:615 } );
+var uDlg = new Window( 'dialog', 'リサイズ＆トリム', { x:0, y:0, width:400, height:685 } );
 
 // ダイアログを画面に対して中央揃えに
 uDlg.center();
@@ -229,9 +229,9 @@ uDlg.resizePnl.overwrite.onClick = function() {
 	uDlg.resizePnl.saveDir.enabled     = !uDlg.resizePnl.overwrite.value;
 }
 
-// パネル 追加アクション
-uDlg.actionPnl            = uDlg.add( "panel",        { x:10, y:505, width:380, height:60 }, "追加アクション" );
-uDlg.actionPnl.actionList = uDlg.add( "dropdownlist", { x:25, y:527, width:350, height:22 }, {} );
+// パネル リサイズ前 追加アクション
+uDlg.actionPnl            = uDlg.add( "panel",       { x: 10, y: 505, width: 380, height: 60 }, "リサイズ前 追加アクション" );
+uDlg.actionPnl.actionList = uDlg.add("dropdownlist", { x: 25, y: 527, width: 350, height: 22 }, {} );
 actionList = getActionSets();
 uDlg.actionPnl.actionList.add( 'item', 'なし' );
 for (i = 0; i < actionList.length; i++) {
@@ -239,8 +239,18 @@ for (i = 0; i < actionList.length; i++) {
 }
 uDlg.actionPnl.actionList.selection = uDlg.actionPnl.actionList.items[0];
 
+// パネル リサイズ後 追加アクション
+uDlg.afterActionPnl            = uDlg.add( "panel",        { x: 10, y: 575, width: 380, height: 60 }, "リサイズ後 追加アクション" );
+uDlg.afterActionPnl.actionList = uDlg.add( "dropdownlist", { x: 25, y: 597, width: 350, height: 22 }, {} );
+actionList = getActionSets();
+uDlg.afterActionPnl.actionList.add( 'item', 'なし' );
+for (i = 0; i < actionList.length; i++) {
+	uDlg.afterActionPnl.actionList.add( 'item', actionList[i] );
+}
+uDlg.afterActionPnl.actionList.selection = uDlg.afterActionPnl.actionList.items[0];
+
 // キャンセルボタン
-uDlg.cancelBtn = uDlg.add( "button", { x:95, y:575, width:100, height:25 }, "キャンセル", { name: "cancel" } );
+uDlg.cancelBtn = uDlg.add( "button", { x:95, y:645, width:100, height:25 }, "キャンセル", { name: "cancel" } );
 // キャンセルボタンが押されたらキャンセル処理（ESCキー含む）
 uDlg.cancelBtn.onClick = function() {
 	// 実行フラグにfalseを代入
@@ -250,7 +260,7 @@ uDlg.cancelBtn.onClick = function() {
 }
 
 // OKボタン
-uDlg.okBtn = uDlg.add( "button", { x:205, y:575, width:100, height:25 }, "リサイズ実行", { name: "ok" } );
+uDlg.okBtn = uDlg.add( "button", { x:205, y:645, width:100, height:25 }, "リサイズ実行", { name: "ok" } );
 // OKボタンが押されたら各設定項目に不備がないかチェック
 uDlg.okBtn.onClick = function() {
 	// 各種項目の値を格納
@@ -385,6 +395,14 @@ if ( do_flag ) {
 
 		// カラーモードをRGBに変更
 		theDoc.changeMode( ChangeMode[settings.colorMode] );
+
+		// リサイズ前 追加アクション実行
+		var isDoAction = (uDlg.actionPnl.actionList.selection.toString() !== 'なし') ? true : false;
+		if (isDoAction) {
+			selectAction = uDlg.actionPnl.actionList.selection.toString().split("::->>");
+			app.doAction(selectAction[1], selectAction[0]);
+		}
+
 		//リサイズする
 		var imageWidth   = theDoc.width.value,
 		    imageHeight  = theDoc.height.value,
@@ -445,24 +463,30 @@ if ( do_flag ) {
 				break;
 		}
 		theDoc.resizeImage( resizeWidth, resizeHeight, 72, ResampleMethod.BICUBICSMOOTHER );
+
 		// 入力されたサイズでトリミング
 		theDoc.resizeCanvas( cropWidth, cropHeight, AnchorPosition.MIDDLECENTER );
-		// 追加アクション実行
-		var isDoAction = (uDlg.actionPnl.actionList.selection.toString() !== 'なし') ? true : false;
+
+		// リサイズ後 追加アクション実行
+		var isDoAction = (uDlg.afterActionPnl.actionList.selection.toString() !== 'なし') ? true : false;
 		if ( isDoAction ) {
-			selectAction = uDlg.actionPnl.actionList.selection.toString().split("::->>");
+			selectAction = uDlg.afterActionPnl.actionList.selection.toString().split("::->>");
 			app.doAction( selectAction[1], selectAction[0] );
 		}
+
 		// 保存先フォルダを作成
 		var saveDir = !settings.save.overwrite ? new Folder( theDoc.path + '/' + settings.save.dir ) : new Folder( theDoc.path );
 		if( !saveDir.exists ){
 			saveDir.create();
 		}
+
 		// 保存用の新規オブジェクト作成
 		var saveDirPath = !settings.save.overwrite ? settings.save.dir + '/' : '';
 		var newFile     = new File( theDoc.path + '/' + saveDirPath + theDoc.name.replace( /\.\w+$/i, '' ) + settings.save.suffix + '.' + settings.save.type[settings.saveType].extension );
+
 		// 保存形式ごとの関数を呼び出し
 		saveFunctions[settings.saveType]( theDoc, newFile, settings );
+
 		// ファイルクローズ
 		theDoc.close( SaveOptions.DONOTSAVECHANGES );
 
