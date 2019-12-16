@@ -37,7 +37,7 @@ var settings = {
 	colorMode: 'RGB',        // カラーモードの初期値
 	_quality: {
 		jpgWeb: {
-			init: 90,            // 保存画質（Web用JPG）の初期値
+			init: 100,            // 保存画質（Web用JPG）の初期値
 			min:  0,
 			max:  100
 		},
@@ -54,8 +54,8 @@ var settings = {
 			square: '正方形',
 			flex:   '長辺・短辺'
 		},
-		width:  120,           // 幅（長辺）のサイズの初期値
-		height: 80,            // 高さ（短辺）のサイズの初期値
+		width:  1000,           // 幅（長辺）のサイズの初期値
+		height: 667,            // 高さ（短辺）のサイズの初期値
 	},
 	save: {
 		init: 'JPG（WEB用）',  // 保存形式の初期値
